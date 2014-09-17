@@ -6,11 +6,20 @@ from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 
 def dnparse(self, response):
         hxs = HtmlXPathSelector(response)
-        bylines = hxs.select("//span[@class='photo']//img[@class='byline']")
+        bylines = hxs.select("//span[@class='middle-quote-photo']//img[@class='byline']")
         items = []
         for byline in bylines:
             item = DNImageByline()
-            item['image_urls'] = byline.select('@src').extract()
+            urls = []
+            incomplete_urls = byline.select('@src').extract()
+            for incomplete_url in incomplete_urls:
+                if incomplete_url.find("//") == 0:
+                    incomplete_url = "http:" + incomplete_url
+                if incomplete_url.find("/Images") == 0:
+                    incomplete_url = "http://www.dn.se" + incomplete_url
+                urls.append(incomplete_url)
+
+            item['image_urls'] = urls
             items.append(item)
         return items
 
@@ -18,7 +27,7 @@ def dnparse(self, response):
 class DNSpider(CrawlSpider):
     name = "dn"
     allowed_domains = ["dn.se"]
-    start_urls = ["http://www.dn.se/"]
+    start_urls = ["http://www.dn.se/ekonomi"]
 
     rules = (
         Rule(SgmlLinkExtractor(), follow=True, callback='parse_item'),
